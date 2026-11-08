@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "zendesk": {
+      "type": "http",
+      "url": "https://zendesk-mcp-884607084009.europe-west1.run.app/mcp"
+    }
+  }
+}

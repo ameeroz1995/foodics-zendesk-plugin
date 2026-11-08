@@ -1,0 +1,12 @@
+{
+  "name": "foodics-coe",
+  "owner": { "name": "Foodics COE" },
+  "description": "Foodics COE plugins for Claude Code",
+  "plugins": [
+    {
+      "name": "foodics-zendesk",
+      "source": "./plugin",
+      "description": "Zendesk MCP for foodics.zendesk.com with its skill: installing the plugin adds both."
+    }
+  ]
+}
