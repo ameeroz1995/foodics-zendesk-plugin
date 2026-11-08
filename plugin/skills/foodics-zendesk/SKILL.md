@@ -1,6 +1,6 @@
 ---
 name: foodics-zendesk
-description: Answer questions about Foodics Zendesk Support data with the zendesk MCP server, using the BI team's definitions. Use whenever someone asks about Foodics tickets, case types, product types, CSAT, CES, FCR, first reply or resolution times, chat / email / internal performance, abandoned chats, training or menu configuration (onboarding), Answer Bot, Zendesk views or queues, or wants to find tickets by F5 number or phone, read ticket comments, or add a note, create or update a ticket, or send a WhatsApp message or template notification, or look up / change Sunshine Conversations (Smooch) webhooks, integrations and switchboards. Triggers include "how many tickets", "CSAT for", "case type of", "tickets for F5", "performance yesterday", "training completion", "what's in the view", "add a note to ticket", "send a WhatsApp", "send the template", "smooch webhook".
+description: Answer questions about Foodics Zendesk Support data with the zendesk MCP server, using the BI team's definitions. Use whenever someone asks about Foodics tickets, case types, product types, CSAT, CES, FCR, first reply or resolution times, chat / email / internal performance, abandoned chats, training or menu configuration (onboarding), Answer Bot, Zendesk views or queues, or wants to find tickets by F5 number or phone, read ticket comments, or add a note, create or update a ticket, or send a WhatsApp message or template notification, or look up / change Sunshine Conversations (Smooch) webhooks, integrations and switchboards. Triggers include "how many tickets", "CSAT for", "case type of", "tickets for F5", "performance yesterday", "training completion", "what's in the view", "add a note to ticket", "send a WhatsApp", "send the template", "smooch webhook", "escalated tickets", "side conversation", or pastes a foodics.zendesk.com link.
 ---
 
 # Foodics Zendesk
@@ -22,9 +22,11 @@ Roles (`whoami`): **viewer** reads; **writer** also adds notes, creates / update
 | Which tickets match X? | `search_tickets` (Zendesk search syntax; `updated_after` splits a long range into parallel windows) |
 | Tickets for an F5 number | `find_tickets_by_f5` (6 digits) |
 | Tickets for a phone number | `find_tickets_by_phone` (any of 05… / 966… / +966…; also matches the requester's profile) |
-| One ticket's details | `get_ticket`; its comments: `list_ticket_comments` |
+| One ticket's details | `get_ticket` (named fields, side conversations: who it was escalated to); its comments: `list_ticket_comments` |
+| The person pasted a Zendesk link (ticket, view, user, org, trigger, automation, macro, field, form, group, SLA, status, article) | `open_link(url)`: extracts the id and fetches it; a view comes with its live count |
+| Escalated tickets | count / search: `tags:escalated` (e.g. `count_tickets("tags:escalated created>=2026-10-01 created<2026-11-01")`); KPIs: `support_summary` with `group_by: ["is_escalated"]` or the `escalated_tickets` column |
 | Product type, sub-category, case type, CSAT, CES, FCR flag, reply/resolution times of tickets | `get_support_attributes` (≤500 ids) |
-| KPIs over a date range, grouped by anything | `support_summary` |
+| KPIs over a date range, grouped by anything | `support_summary`. Columns: tickets, FCR-included, CSAT / CES, medians of first reply, first and full resolution, requester / agent wait and on-hold (minutes), reopened, escalated, group-transferred and L2-backlog tickets. Group or filter by product / sub-category / case type, country, channel, CSAT / CES score and reason, `is_escalated`, `is_reopened`, `is_group_transferred`, `is_outbound_ticket`, `is_fcr_included`, `is_suspended_ticket`, `is_followup_ticket`, `is_internal_whatsapp`, `is_l2_backlog`, status, group, assignee, form, time, or `field:<any field>` |
 | Daily chat / email / internal performance | `channel_performance` |
 | Training and menu configuration performance | `onboarding_performance` |
 | Answer Bot article suggestions | `answer_bot_summary` |
@@ -52,6 +54,14 @@ full chain of form selections, which is useful to explain *why*, not as the KPI 
   digit 1–5). Then the tags `whatsappgoodrating` (5) / `whatsappbadrating` (1). Then Zendesk's native rating
   (good 5 / bad 1). **Good CSAT = 4 or 5.** Report good ÷ rated, never good ÷ all tickets.
 - **CES:** the `CES Rating` field: the highest digit 5..1 that appears in it.
+- **Escalated:** the ticket has a side conversation. The trigger "Side Ticket Created -> Tagger (Escalated)"
+  adds the tag `escalated` when one is created, so it is searchable (`tags:escalated`). The trigger exists since
+  2024-01-29: older tickets aren't tagged, so say so for earlier periods. `get_ticket` shows each side
+  conversation's subject, state and participants (people and groups, e.g. `Integration L3`).
+- **Other flags (BI view):** suspended = a tag contains `suspended_ticket`; follow-up = a tag like
+  `follow_up`; internal WhatsApp = the internal-WhatsApp field is set; L2 backlog = the L2 backlog field is
+  `yes_l2_coe`; reopened = reopens > 0; group-transferred = more than one group on the ticket.
+- **xCALLY id:** `id-` + the field's digits (dots removed); NULL when the value isn't numeric.
 - **FCR-included:** the requester is not @foodics, the custom channel is one of native_messaging, whatsapp, email,
   telegram, social_media or inbound_call, the ticket is not outbound, and the case type is not an automated or
   cc'd one. This flag marks tickets *eligible* for FCR; it is not the FCR rate.

@@ -1,6 +1,6 @@
 {
   "name": "foodics-zendesk",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Foodics Zendesk MCP (tickets, BI-definition KPIs, views, admin changes with rollback) plus the skill that teaches Claude how to use it.",
   "author": { "name": "Foodics COE" }
 }
