@@ -21,13 +21,42 @@ the person has; others are refused, so say who to ask (an MCP admin ticks them o
 
 - Never mix instances in one answer without saying which numbers come from which Zendesk.
 - Ids (tickets, fields, groups, views) belong to one instance: a Tanar ticket number means nothing on Foodics.
-- The BI definitions in this skill (product type → case type, CSAT / CES, FCR, chat / email / internal
-  performance, onboarding) are **Foodics'**. On Tanar, `get_support_attributes`, `support_summary`,
-  `channel_performance`, `onboarding_performance` and `find_tickets_by_f5` are refused until Tanar's own
-  BI views are ported; search, counts, tickets, views, history, admin and WhatsApp work.
+- The BI definitions below are **Foodics'** unless a line says Tanar. Tanar has its own (see "Tanar BI");
+  `onboarding_performance` and `find_tickets_by_f5` are Foodics-only.
 - WhatsApp on Tanar needs `integration_id` / `parent` (from `sunshine_read(kind="integrations", instance="tanar")`);
   there is no OpenCX handover there.
 - A rollback always runs on the instance the change was made in.
+
+### Tanar BI (instance "tanar": the Pay Zendesk)
+
+`get_support_attributes`, `support_summary`, `view_tickets(with_support_attributes)` and `channel_performance`
+work on Tanar with the BI team's Tanar definitions (Snowflake `BI_TEAM.TANAR_OKRS`: table
+FCT_TICKET_CUSTOM_FIELD, FCT_TICKET_CONVERSATION, VW_FCT_SUPPORT_INTERACTION_{EMAIL,INTERNAL,CHAT}, and the same
+VW_AGG_SUPPORT_*_PERFORMANCE as Foodics). Checked against Snowflake: 396 sampled tickets match on all 22 columns;
+20 Oct–2 Nov email, internal and chat daily numbers match (chat 8 of 9 days, see below).
+
+- Product type → sub-category → case type from the forms' "Product R/C" / "Product Type" conditions. A
+  sub-category field with no further conditions gives sub-category **"Inquiry"** and its value as the case type.
+- **CSAT** is the "3cx CSAT" text field (1–5; a few `X`). Zendesk satisfaction ratings are empty on Tanar.
+  `support_summary` averages only 1–5; the interaction views count any answer as rated.
+- **CES** is "CES Rating" free text (e.g. `[5] : محسن بشكل كبير`): its first digit 1–5. Raw text: `ticket_custom_ves`.
+- **FCR and outbound are not defined for Tanar** (always empty): don't report FCR for Tanar.
+- `channel_name` is `via.source.rel` first, then the channel: `follow_up`, `side_conversation`, `api` (calls),
+  `email`, `native_messaging`, `web`. `custom_channel` is `internal` when "Internal ticket" is ticked, else
+  the Channel field (Inbound Call, Emails, Chat…). Country ("Country - Pay") is an inactive field, so it's empty, as in BI.
+- Extra columns: form and group name, merchant reference (upper-cased), follow-up ids, Pay validation /
+  financial / non-financial validation, final decision, caller number, xCALLY id, SAMA CSAT handling /
+  resolution, requester / assignee emails. Any other field: `group_by: ["field:<title>"]`.
+- `channel_performance` on Tanar: **email** = channel `email` and not internal (follow-ups excluded); first reply
+  is the first public comment by anyone but an end-user. **Internal** = "Internal ticket" ticked, queue
+  `COE Support` by default; first reply is the first comment by neither requester nor submitter. **Chat** = one
+  session per chat start on native messaging, from the transcript: first reply / queue time = the end-user's
+  first message to the agent's answer, handling = agent first-to-last message per reply window (summed);
+  sessions with no agent time are dropped; abandoned = no later replies on the ticket's first session.
+- Tanar chat quirks copied from the view (say so when they matter): a chat's transcript holds the customer's
+  earlier conversations, so a session can be dated weeks before the chat (by the first agent message in the
+  transcript), and recent days change as later chats arrive; a completed session counts on its UTC date.
+  Deleted tickets are in BI's email totals but not here (the API can't see them).
 
 ## Pick the tool
 
