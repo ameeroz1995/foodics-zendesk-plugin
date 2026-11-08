@@ -3,7 +3,7 @@
 Adds the Foodics Zendesk MCP server and its skill to Claude Code in one step.
 
 ```bash
-claude plugin marketplace add https://github.foodics.com/foodics-ops/foodics-zendesk-plugin.git
+claude plugin marketplace add ameeroz1995/foodics-zendesk-plugin
 claude plugin install foodics-zendesk@foodics-coe
 ```
 
