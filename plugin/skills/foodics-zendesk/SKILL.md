@@ -27,7 +27,7 @@ Roles (`whoami`): **viewer** reads; **writer** also adds notes, creates / update
 | Escalated tickets | count / search: `tags:escalated` (e.g. `count_tickets("tags:escalated created>=2026-10-01 created<2026-11-01")`); KPIs: `support_summary` with `group_by: ["is_escalated"]` or the `escalated_tickets` column |
 | Product type, sub-category, case type, CSAT, CES, FCR flag, reply/resolution times of tickets | `get_support_attributes` (≤500 ids) |
 | KPIs over a date range, grouped by anything | `support_summary`. Columns: tickets, FCR-included, CSAT / CES, medians of first reply, first and full resolution, requester / agent wait and on-hold (minutes), reopened, escalated, group-transferred and L2-backlog tickets. Group or filter by product / sub-category / case type, country, channel, CSAT / CES score and reason, `is_escalated`, `is_reopened`, `is_group_transferred`, `is_outbound_ticket`, `is_fcr_included`, `is_suspended_ticket`, `is_followup_ticket`, `is_internal_whatsapp`, `is_l2_backlog`, status, group, assignee, form, time, or `field:<any field>` |
-| Daily chat / email / internal performance | `channel_performance` |
+| Daily chat / email / internal performance | `channel_performance`; per agent / queue / sub-channel: `group_by: "assignee"` (with names), `"queue"`, `"sub_channel"`; for a whole period instead of per day: `per: "range"` (e.g. each agent's week) |
 | Training and menu configuration performance | `onboarding_performance` |
 | Answer Bot article suggestions | `answer_bot_summary` |
 | What is in a Zendesk view / queue right now | `list_views`, `count_views`, `view_tickets` |
@@ -54,7 +54,8 @@ full chain of form selections, which is useful to explain *why*, not as the KPI 
   digit 1–5). Then the tags `whatsappgoodrating` (5) / `whatsappbadrating` (1). Then Zendesk's native rating
   (good 5 / bad 1). **Good CSAT = 4 or 5.** Report good ÷ rated, never good ÷ all tickets.
 - **CES:** the `CES Rating` field: the highest digit 5..1 that appears in it.
-- **Escalated:** the ticket has a side conversation. The trigger "Side Ticket Created -> Tagger (Escalated)"
+- **Escalated:** the ticket has a side conversation, counted by the `escalated` tag everywhere (`get_ticket`
+  also lists the side conversations themselves, including older untagged ones). The trigger "Side Ticket Created -> Tagger (Escalated)"
   adds the tag `escalated` when one is created, so it is searchable (`tags:escalated`). The trigger exists since
   2024-01-29: older tickets aren't tagged, so say so for earlier periods. `get_ticket` shows each side
   conversation's subject, state and participants (people and groups, e.g. `Integration L3`).
@@ -75,11 +76,17 @@ full chain of form selections, which is useful to explain *why*, not as the KPI 
   - **Averages:** `AVG(DISTINCT …)`, as in the view.
   - **First reply:** the assignee's first message from 5 s before the session started. No value means the session was not replied to.
   - **Unique answered:** answered sessions that are the requester's only session of that status, sub-channel and day.
+    It is worked out over all sessions before any `group_by` split, so splitting doesn't change it.
+  - **Messages:** average customer and agent (last assignee) messages per answered session, counted in the
+    session's own window (the view counts the whole stored transcript, earlier sessions included).
 - **Email / internal performance:**
   - **Queue time:** created → first assigned.
-  - **First reply:** first assigned → first agent comment. Email counts public comments by non-end-users; internal counts any comment by someone other than the requester or submitter.
+  - **First reply:** first assigned → first agent comment. Email counts public comments by agents (an author whose role is unknown doesn't count, as in the SQL); internal counts any comment by someone other than the requester or submitter.
   - **Answered within threshold:** first reply ≤ 30 min.
-  - **Scope:** internal = custom channel `internal_communication` in the `COE Support` group.
+  - **Scope:** internal = the Channel field `internal_communication` (also when the ticket arrived by email /
+    WhatsApp) in the `COE Support` group. Email sub-channel = the custom channel (e.g. `inbound_call`).
+    A ticket that came in by email with the Channel field set to internal counts in both email and internal,
+    as in the BI views.
 - **Days** are local **Asia/Riyadh** dates.
 - **Training / menu:** tickets on the "Training or Menu Configuration" form, split by `Onboarding - Task Type`.
   Training outcomes come from `Onboarding - Training session completion status`. The completion,
@@ -158,7 +165,10 @@ People's access (viewer / writer / admin) is set on the access page, `<MCP serve
   without the person approving each send. Bulk / campaign sending isn't offered.
 - On the main number (Whatsapp_KSA) the conversation is passed to OpenCX after a notification, so the
   customer's reply reaches OpenCX, not Answer Bot. Say so in the preview; `hand_to_opencx=False` only if asked.
-- Phone numbers in international form (`9665…`); `05…` is not accepted.
+- Phone numbers in international form (`9665…` or `009665…`); `05…` is refused, not guessed.
+- **One yes, one send.** A confirm token works once. If a send errors with "MAY have been sent", read the
+  conversation (`sunshine_read(kind="messages")`) before asking to send again. Named template variables
+  (`{{name}}`) aren't supported; numbered ones are.
 - `sunshine_config` (admins) works like `admin_config`: preview, confirm, `op_id`, rollback. Deleting an
   integration or the switchboard isn't offered; a deleted webhook comes back with a new id and a new secret.
   Secrets are always hidden.
