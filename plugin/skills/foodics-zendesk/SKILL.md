@@ -1,6 +1,6 @@
 ---
 name: foodics-zendesk
-description: Answer questions about Foodics Zendesk Support data with the zendesk MCP server, using the BI team's definitions. Use whenever someone asks about Foodics tickets, case types, product types, CSAT, CES, FCR, first reply or resolution times, chat / email / internal performance, abandoned chats, training or menu configuration (onboarding), Answer Bot, Zendesk views or queues, or wants to find tickets by F5 number or phone, read ticket comments, or add a note, create or update a ticket, or send a WhatsApp message or template notification, or look up / change Sunshine Conversations (Smooch) webhooks, integrations and switchboards. Triggers include "how many tickets", "CSAT for", "case type of", "tickets for F5", "performance yesterday", "training completion", "what's in the view", "add a note to ticket", "send a WhatsApp", "send the template", "smooch webhook", "escalated tickets", "side conversation", or pastes a foodics.zendesk.com link.
+description: Answer questions about Foodics (and Tanar) Zendesk Support data with the zendesk MCP server, using the BI team's definitions. Use whenever someone asks about Foodics tickets, case types, product types, CSAT, CES, FCR, first reply or resolution times, chat / email / internal performance, abandoned chats, training or menu configuration (onboarding), Answer Bot, Zendesk views or queues, or wants to find tickets by F5 number or phone, read ticket comments, or add a note, create or update a ticket, or send a WhatsApp message or template notification, or look up / change Sunshine Conversations (Smooch) webhooks, integrations and switchboards. Triggers include "how many tickets", "CSAT for", "case type of", "tickets for F5", "performance yesterday", "training completion", "what's in the view", "add a note to ticket", "send a WhatsApp", "send the template", "smooch webhook", "escalated tickets", "side conversation", pastes a foodics.zendesk.com link, or asks about Tanar / tanarhelp.
 ---
 
 # Foodics Zendesk
@@ -12,6 +12,22 @@ they can be fresher than the dashboards. It also sends WhatsApp messages through
 
 Roles (`whoami`): **viewer** reads; **writer** also adds notes, creates / updates tickets and sends WhatsApp;
 **admin** also changes configuration, users, tickets in bulk and Sunshine settings.
+
+## Instances (which Zendesk)
+
+Every tool takes `instance`. Leave it out for **foodics** (foodics.zendesk.com), the default. Pass
+`instance: "tanar"` for **tanarhelp.zendesk.com** when the person asks about Tanar. `whoami` lists the instances
+the person has; others are refused, so say who to ask (an MCP admin ticks them on the access page).
+
+- Never mix instances in one answer without saying which numbers come from which Zendesk.
+- Ids (tickets, fields, groups, views) belong to one instance: a Tanar ticket number means nothing on Foodics.
+- The BI definitions in this skill (product type → case type, CSAT / CES, FCR, chat / email / internal
+  performance, onboarding) are **Foodics'**. On Tanar, `get_support_attributes`, `support_summary`,
+  `channel_performance`, `onboarding_performance` and `find_tickets_by_f5` are refused until Tanar's own
+  BI views are ported; search, counts, tickets, views, history, admin and WhatsApp work.
+- WhatsApp on Tanar needs `integration_id` / `parent` (from `sunshine_read(kind="integrations", instance="tanar")`);
+  there is no OpenCX handover there.
+- A rollback always runs on the instance the change was made in.
 
 ## Pick the tool
 
